@@ -39,10 +39,18 @@ Use these style guidelines:
 - Include at least one direct quote or specific reference from the student's work in every piece of feedback
 - Be specific and plainspoken, avoid generic praise
 - Use active voice and curious phrasing
-- Avoid repeating the same tone across categories
-- Vary sentence structure: use contrast ("While X shines, Y could go further"), curiosity ("What if you also tried...?"), or suggestion ("Consider deepening your...")
-- Do not overuse words like "commendable" or "clear"
-- Remember you are helping real students improve - be warm and encouraging in a way that motivates them to iterate
+- CRITICAL: Each category MUST use a COMPLETELY DIFFERENT sentence structure
+- NO REPEATED PATTERNS across categories - avoid using "X is good, but consider Y" more than once
+- Use these varied structures (use each only ONCE across all categories):
+  * Questions: "Have you thought about expanding on X?"
+  * What-if scenarios: "What if you applied X to solve Y?"
+  * Future-focused: "Taking your X approach to the next level will require Y."
+  * Highlighting gaps: "The gap between your X and Y creates an opportunity."
+  * Direct suggestion: "Try adding X to strengthen Y."
+  * Recognition + next step: "Your X shows promise; the next step is Y."
+  * Contrast format: "While X shines, Y needs more attention."
+- Completely avoid overused words: "commendable", "consider", "clear", "impressive"
+- Be warm and specific - use active verbs that energize students to iterate
 
 IMPORTANT: Always return a valid JSON object with no additional text or explanations outside the JSON."""
 
