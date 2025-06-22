@@ -108,7 +108,7 @@ def collect_category_responses(student_responses: Dict, category: str) -> str:
     for col, response in student_responses.items():
         # Match if full category name is in column OR if the column starts with the category prefix
         if isinstance(response, str) and (category in col or col.startswith(category_prefix)):
-            responses.append(f"{col}: {response}")
+            responses.append(response.strip())
             
     return "\n".join(responses)
 
