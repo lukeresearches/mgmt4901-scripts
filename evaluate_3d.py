@@ -42,42 +42,25 @@ Use these style guidelines:
 
 IMPORTANT: Always return a valid JSON object with no additional text or explanations outside the JSON."""
 
-RUBRIC_PROMPT_TEMPLATE = """Evaluate the student's prototype testing submission for the {category} category.
+RUBRIC_PROMPT_TEMPLATE = """Evaluate student's {category} submission.
 
-**Rubric Items:**
-{rubric_items}
+Rubric: {rubric_items}
+Guidance: {professor_guidance}
+Response: {responses}
 
-**Professor's Guidance:**
-{professor_guidance}
-
-**Student's Response:**
-{responses}
-
-Respond with JSON only:
-{{"rubric_category": "{category}", "feedback": "Your detailed feedback here", "score": "XX"}}
+JSON only: {{"rubric_category": "{category}", "feedback": "Your feedback", "score": "XX"}}
 """
 
 # Summary prompt template
-SUMMARY_PROMPT_TEMPLATE = """Provide an overall summary evaluation of the student's prototype testing submission, focusing specifically on their prototype development and testing approach.
+SUMMARY_PROMPT_TEMPLATE = """Summarize student's prototype testing approach.
 
-**Professor's Guidance:**
-{professor_guidance}
+Guidance: {professor_guidance}
+Submissions: {responses}
+Prototype content: {prototype_testing_content}
 
-**Student's Submissions:**
-{responses}
+Mention: prototype type, testing method, hypothesis validation. Quote student directly.
 
-**Prototype Testing Information:**
-{prototype_testing_content}
-
-Your summary feedback must explicitly mention:
-1. The type of prototype the student created
-2. Their testing methodology
-3. How they validated/invalidated their hypothesis
-
-Make specific references to what the student wrote by directly quoting their own words.
-
-Respond with JSON only:
-{{"feedback": "Your detailed summary feedback here", "score": "XX"}}
+JSON only: {{"feedback": "Your summary", "score": "XX"}}
 """
 
 def load_rubric() -> Dict[str, List[Dict]]:
@@ -127,8 +110,8 @@ def collect_category_responses(student_responses: Dict, category: str) -> str:
 
 def create_prompt(category: str, rubric_items: List[Dict], student_responses: Dict) -> str:
     """Create the evaluation prompt for OpenAI API."""
-    # Format rubric items as bulleted list
-    rubric_items_str = "\n".join([f"- {item['item']}" for item in rubric_items])
+    # Use only key rubric items to reduce tokens
+    rubric_items_str = "; ".join(item['item'].split(":")[0] for item in rubric_items[:2])
     
     # Get professor feedback, or use a placeholder if not available
     professor_feedback = student_responses.get('Professor Feedback', '')
@@ -220,8 +203,8 @@ def create_summary_prompt(student_responses: Dict) -> str:
     professor_feedback = student_responses.get('Professor Feedback', '')
     professor_guidance = professor_feedback if professor_feedback else "None provided yet."
     
-    # Extract prototype testing specific content for special emphasis
-    prototype_testing_content = ""
+    # Extract only essential prototype testing content to save tokens
+    prototype_testing_details = []
     
     # Look for columns related to Hypothesis Testing or including 'prototype' keyword
     for col, val in student_responses.items():
@@ -231,14 +214,16 @@ def create_summary_prompt(student_responses: Dict) -> str:
             or "test" in col.lower() 
             or col.startswith("Evaluation")
         ):
-            prototype_testing_content += f"\n{col}: {val}"
+            prototype_testing_details.append(val)
+            
+    prototype_testing_content = "\n".join(prototype_testing_details)
     
     # If no specific prototype testing content was found, use a general message
     if not prototype_testing_content.strip():
         prototype_testing_content = "No specific prototype testing details extracted. Please review all student responses."
     
-    # Format the prompt
-    all_responses = "\n\n".join([f"{k}: {v}" for k, v in student_responses.items() if k != 'Professor Feedback'])
+    # Format the prompt - more token efficient by removing redundant column names
+    all_responses = "\n".join(v for k, v in student_responses.items() if k != 'Professor Feedback' and isinstance(v, str) and v.strip())
     prompt = SUMMARY_PROMPT_TEMPLATE.format(
         professor_guidance=professor_guidance,
         responses=all_responses,
