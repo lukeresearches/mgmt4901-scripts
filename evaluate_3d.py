@@ -164,12 +164,41 @@ def evaluate_category(student_id: str, category: str, rubric_items: List[Dict], 
         usage = response['usage']
         logging.info(f"[{student_id} | {category}] Token usage — prompt: {usage['prompt_tokens']}, completion: {usage['completion_tokens']}, total: {usage['total_tokens']}")
         
-        # Extract JSON from the response
-        result = json.loads(response.choices[0].message.content)
+        # Extract JSON from the response with enhanced error handling
+        content = response.choices[0].message.content
         
-        # Validate the response
-        if 'rubric_category' not in result or 'feedback' not in result or 'score' not in result:
-            logging.warning(f"Invalid response format for {student_id}, category {category}")
+        # Add additional sanitizing to help with common JSON errors
+        try:
+            # Log the raw content for debugging
+            logging.debug(f"Raw API response for {student_id}, category {category}: {content}")
+            
+            # Check if we have a properly formatted JSON response (must start with { and end with })
+            content = content.strip()
+            if not (content.startswith('{') and content.endswith('}')):
+                logging.warning(f"Response not valid JSON format: {content[:50]}...")
+                # Try to extract a JSON object if it exists within the text
+                json_start = content.find('{')
+                json_end = content.rfind('}')
+                
+                if json_start >= 0 and json_end > json_start:
+                    content = content[json_start:json_end+1]
+                    logging.info(f"Extracted JSON content: {content[:50]}...")
+                else:
+                    raise ValueError("Could not extract valid JSON from response")
+            
+            result = json.loads(content)
+            
+            # Validate the response
+            if 'rubric_category' not in result or 'feedback' not in result or 'score' not in result:
+                logging.warning(f"Missing required fields in response for {student_id}, category {category}")
+                return {
+                    "rubric_category": category,
+                    "feedback": f"Error processing evaluation for {category}. Please try again.",
+                    "score": ""
+                }
+                
+        except json.JSONDecodeError as e:
+            logging.error(f"JSON parsing error for {student_id}, category {category}: {str(e)}\nContent: {content[:200]}")
             return {
                 "rubric_category": category,
                 "feedback": f"Error processing evaluation for {category}. Please try again.",
@@ -285,8 +314,33 @@ def evaluate_all_categories(student_id: str, rubric_by_category: Dict, submissio
         summary_usage = summary_response['usage']
         logging.info(f"[{student_id} | SUMMARY] Token usage — prompt: {summary_usage['prompt_tokens']}, completion: {summary_usage['completion_tokens']}, total: {summary_usage['total_tokens']}")
         
-        summary_result = json.loads(summary_response.choices[0].message.content)
-        results["summary_feedback"] = summary_result.get("feedback", "Error generating summary. Please try again.")
+        # Extract JSON from the summary response with enhanced error handling
+        summary_content = summary_response.choices[0].message.content
+        
+        try:
+            # Log the raw content for debugging
+            logging.debug(f"Raw summary API response for {student_id}: {summary_content}")
+            
+            # Check if we have a properly formatted JSON response
+            summary_content = summary_content.strip()
+            if not (summary_content.startswith('{') and summary_content.endswith('}')):
+                logging.warning(f"Summary response not valid JSON format: {summary_content[:50]}...")
+                # Try to extract a JSON object if it exists within the text
+                json_start = summary_content.find('{')
+                json_end = summary_content.rfind('}')
+                
+                if json_start >= 0 and json_end > json_start:
+                    summary_content = summary_content[json_start:json_end+1]
+                    logging.info(f"Extracted JSON from summary content: {summary_content[:50]}...")
+                else:
+                    raise ValueError("Could not extract valid JSON from summary response")
+            
+            summary_result = json.loads(summary_content)
+            results["summary_feedback"] = summary_result.get("feedback", "Error generating summary. Please try again.")
+            
+        except (json.JSONDecodeError, ValueError) as e:
+            logging.error(f"JSON parsing error for {student_id} summary: {str(e)}\nContent: {summary_content[:200]}")
+            results["summary_feedback"] = f"Error generating summary. JSON parsing failed: {str(e)[:50]}"
     except Exception as e:
         logging.error(f"Error generating summary for student {student_id}: {str(e)}")
         results["summary_feedback"] = "Error generating summary. Please try again."
