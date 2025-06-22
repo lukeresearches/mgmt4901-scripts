@@ -39,6 +39,10 @@ Use these style guidelines:
 - Include at least one direct quote or specific reference from the student's work in every piece of feedback
 - Be specific and plainspoken, avoid generic praise
 - Use active voice and curious phrasing
+- Avoid repeating the same tone across categories
+- Vary sentence structure: use contrast ("While X shines, Y could go further"), curiosity ("What if you also tried...?"), or suggestion ("Consider deepening your...")
+- Do not overuse words like "commendable" or "clear"
+- Remember you are helping real students improve - be warm and encouraging in a way that motivates them to iterate
 
 IMPORTANT: Always return a valid JSON object with no additional text or explanations outside the JSON."""
 
